@@ -1,7 +1,11 @@
 package sdu.alice.mycontact;
 
 import android.content.Intent;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -17,7 +21,8 @@ public class SignUp extends AppCompatActivity {
     private ImageView imageView;
     private Button button;
 
-    private String nameString, userString, passString;  // ประกาศตัวแปรเพิ่มสำหรับเช็คการรับค่า onClick ขั้น 9
+    private String nameString, userString, passString,   //ขั้น 9 ประกาศตัวแปรเพิ่มสำหรับเช็คการรับค่า onClick
+            pathImageString, nameImageString;           //ขั้น 13 ประกาศตัวแปรเพิ่มเพื่อเก็บ path ของรูปและชื่อรูปที่อยู่ในเครื่องมือถือ
 
     private Uri uri;
 
@@ -40,7 +45,7 @@ public class SignUp extends AppCompatActivity {
 
     //กด Alt+Enter เลือก onActivityResult เพื่อ Override Method onActivityResult
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) { //เป็น method ที่ทำงานหลังจาก method อื่นทำงานเสร็จแล้ว
         super.onActivityResult(requestCode, resultCode, data);
 
         if (resultCode == RESULT_OK) {
@@ -50,8 +55,11 @@ public class SignUp extends AppCompatActivity {
 
             //Choose image Show แสดงภาพที่เลือก
             uri = data.getData();   //เอาข้อมูลที่เลือกมาแยกออก เอาเฉพาะรูปภาพ
-            try {
-                
+            try {       //ในการเขียนโปรแกรม ถ้าการทำงานใดที่อาจจะ error เกิดขึ้น ให้ใช้คำสั่ง Try {} catch {} โดยเมื่อเกิด error แอปจะไม่ catch เป็น code error แต่จะหยุดการทำงาน
+
+                //ดึง uri จาก Gallery มาแสดงบนหน้าแอป   ขั้น 12
+                Bitmap bitmap = BitmapFactory.decodeStream(getContentResolver().openInputStream(uri));  //จากข้อมูลที่ได้รับมาจาก method imageController() ซึ่งอยู่ในตัวแปร uri มาทำการกรองเอาเฉพาะรูปภาพ
+                imageView.setImageBitmap(bitmap);   //เอารูปภาพที่กรองได้จากบรรทัดบนมาเก็บที่ตัวแปร bitmap
 
             } catch (Exception e) {
                 e.printStackTrace();    //เมือมี error ให้แสดงข้อความเตือน
@@ -59,7 +67,26 @@ public class SignUp extends AppCompatActivity {
 
         }   //if
 
+        //Find Image Path    ขั้น 14 เมื่อได้รูปแภาพมาแล้ว ทำการ get path และชื่อภาพขึ้นมา
+        String[] strings = new String[]{MediaStore.Images.Media.DATA};  //Media มี 3 ประเภท Audio, Image, Video ในที่นี้เลือก Image โดยเป็นการกรองข้อมูลเอาเฉพาะรูปภาพ
+        Cursor cursor = getContentResolver().query(uri, strings, null, null, null);   //เป็นการจองหน่วยความจำ ชื่อ cursor เพื่อเก็บรูปทั้งหมดบน external storage ที่เปิด โดย query() จะเป็นการกรองรูปภาพที่เราต้องการ
+        //query(uri, strings, null, null, null) คือ ข้อมูลทั้งก้อนที่เก็บใน uri เลือกเฉพาะรูปภาพ ที่เก็บในตัวแปร string ส่วน arg. ที่เหลือไม่ใช้ ให้เป็น null
+
+        if (cursor != null) {   //กรณีใน external storage มีมากกว่า 1 รูป
+
+            cursor.moveToFirst();   //เลื่อนตำแหน่งไปที่ตำแหน่งภาพแรกสุด
+            int index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA); //เมื่อทำการแตะเลือกรูปภาพ
+            pathImageString = cursor.getString(index);  //เก็บค่า path ตรงตำแหน่งรูปที่เลือกลงตัวแปร pathImageString
+
+        } else {    //กรณีใน external storage มีแค่รูปเดียว
+            pathImageString = uri.getPath();    //ให้เอา path รูปภาพมาเก็บในตัวแปร pathImageString เลย
+
+        }
+
+        Log.d("19FebV1", "pathImage ==>" + pathImageString);    //กด Alt+6 เพื่อเรียก Logcat เพื่อดูการทำงานของโปรแกรม เรียกดู path ของรูปภาพที่เลือก เช่น pathImage ==>/storage/3734-6331/รูปภาพเกาะรัตนโกสินทร์/IMG_4593.JPG
+
     }   //onActivityResult
+
 
     private void imageController() {    //สร้างการเลือกรูปภาพจาก gallery
 
@@ -68,7 +95,7 @@ public class SignUp extends AppCompatActivity {
             public void onClick(View view) {
 
                 //Move to Choose Image
-                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);   //ย้ายตัวเองไปเปิดรูปภาพ
+                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);   //คำสั่ง ACTION_GET_CONTENT เป็นการย้ายตัวเองไปทำงานที่อื่น และรอส่งผลลัพธ์กลับมา ในที่นี้ไปเปิดรูปภาพ แล้วเอารูปภาพมาแสดงบนหน้าจอ
                 intent.setType("image/*");  //เปิดรูปภาพทั้งหมดที่มีในเครื่อง
                 startActivityForResult(Intent.createChooser(intent, "Select picture"), 1);   //เมื่อทำงานสำเร็จให้ส่งค่ากลับมาบอก ซึ่งจะโยนรูปภาพที่เลือกกลับมา ตรงเลข 1 ใส่เลขอะไรก็ได้ที่เป็นจน.เต็ม
 
