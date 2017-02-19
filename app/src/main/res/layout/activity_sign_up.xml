@@ -31,7 +31,7 @@
         <ImageView
             android:layout_width="@dimen/my_icon"
             android:layout_height="@dimen/my_icon"
-            app:srcCompat="@drawable/no_image"
+            android:src="@drawable/no_image"
             android:id="@+id/imageView" />
 
         <LinearLayout

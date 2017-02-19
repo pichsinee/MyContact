@@ -5,6 +5,7 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.StrictMode;
 import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -13,6 +14,11 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.Toast;
+
+import org.jibble.simpleftp.SimpleFTP;
+
+import java.io.File;
 
 public class SignUp extends AppCompatActivity {
 
@@ -25,7 +31,7 @@ public class SignUp extends AppCompatActivity {
             pathImageString, nameImageString;           //ขั้น 13 ประกาศตัวแปรเพิ่มเพื่อเก็บ path ของรูปและชื่อรูปที่อยู่ในเครื่องมือถือ
 
     private Uri uri;
-    private boolean aBoolean = true;    //ขั้น 15 ประกาศตัวแปรเพ่มสำหรับเช็คว่าเลือกรูปภาพในหน้า SignIn หรือยัง
+    private boolean aBoolean = true;    //ขั้น 15 ประกาศตัวแปรเพ่มสำหรับเช็คว่าเลือกรูปภาพในหน้า SignIn หรือยัง โดยให้ aBoolean = true คือยังไม่มีการเลือกภาพ
 
 
     @Override
@@ -51,7 +57,7 @@ public class SignUp extends AppCompatActivity {
 
         if (resultCode == RESULT_OK) {
 
-            aBoolean = false;   //ขั้น 17 ถ้าเลือกรูปแล้ว เปลี่ยนค่า aBoolean เป็น false
+            aBoolean = false;   //ขั้น 17 ถ้าเลือกรูปแล้ว เปลี่ยนค่าตัวแปร aBoolean เป็น false ซึ่งค่าตั้งต้นของ aBoolean เป็น true คือ ยังไม่เลือกรูป
 
             //if True Success choose image
             Log.d("18FebV1", "Result OK");
@@ -126,13 +132,15 @@ public class SignUp extends AppCompatActivity {
                     MyAlert myAlert = new MyAlert(SignUp.this);     //ขั้น 10 ต้องทำขั้น 9 ที่ MyAlert.java
                     myAlert.myDialog("Have space", "Please fill every blank.");  //ข้อความ Title และ Message พิมพ์ภาษาไทยก็ได้
 
-                } else if (aBoolean) {  //ขั้น 15   chk ว่ารูปภาพยังไม่ได้เลือก คือ ตัวแปร aBoolean เป็น true
+                } else if (aBoolean) {  //ขั้น 16   chk ว่ารูปภาพยังไม่ได้เลือก คือ ตัวแปร aBoolean เป็น true
                     //Non choose Image
                     MyAlert myAlert = new MyAlert(SignUp.this);
-                    myAlert.myDialog("ยังไม่ได้เลือกรูป", "กรุณาเลือกรูปก่อน");
+                    myAlert.myDialog("Non choose Image", "Please Select Image");
 
                 } else {
-
+                    //Everything OK ขั้น 18 ใส่ข้อมูลในหน้า SignUp ครบทุก Field แล้ว
+                    uploadImageToServer();  //สร้าง method  uploadImageToServer เอาเมาส์ไว้หลังชื่อ method แล้วกด Alt+Enter เลือก Cast > SignUp
+                    uploadTextToMySQL();    //ขั้น 19 สร้าง method uploadTextToMySQL() เอาเมาส์ไว้หลังชื่อ method แล้วกด Alt+Enter เลือก Cast > SignUp
 
                 }
 
@@ -140,6 +148,53 @@ public class SignUp extends AppCompatActivity {
         });
 
     }   //Method buttonController
+
+    private void uploadTextToMySQL() {  //เป็น Method ที่ใช้ upload ข้อความขึ้น MySQL
+        //ขั้น 21 การ upload ข้อมูลขึ้น MySQL
+        try {
+
+            //ตัตข้อความเอา path ที่อยู่หลัง / อันหลังสุด
+            nameImageString = "http://swiftcodingthai.com/19feb/image_aom/" + pathImageString.substring(pathImageString.lastIndexOf("/"));
+
+            AddNewUser addNewUser = new AddNewUser(SignUp.this,
+                    nameString, userString, passString, nameImageString);   //รับค่า 4 field จากการ SignUp
+            addNewUser.execute();   //เริ่มทำงาน
+
+            if (Boolean.parseBoolean(addNewUser.get())) {   //ถ้า upload ข้อมูลได้ ก็จบการทำงาน
+                Toast.makeText(SignUp.this, "Upload Complete", Toast.LENGTH_SHORT).show();
+                finish();
+            } else {    //ถ้า upload ไม่ได้ ขึ้นข้อความเตือน
+                Toast.makeText(SignUp.this, "Upload error ", Toast.LENGTH_SHORT).show();
+            }
+
+        } catch (Exception e) {
+            Log.d("19febV1", "e Upload Text ==> " + e.toString());  //chk error ในการ upload Text
+        }
+
+    }   //Method uploadTextToMySQL()
+
+    private void uploadImageToServer() {    //เป็น Method ที่ใช้ upload รูปภ่าพขึ้น Server
+
+        try {
+
+            //Change Policy ทำการเปลี่ยน Policy โดยขอให้เข้าถึง Protocal
+            StrictMode.ThreadPolicy threadPolicy = new StrictMode.ThreadPolicy
+                    .Builder()
+                    .permitAll()
+                    .build();
+            StrictMode.setThreadPolicy(threadPolicy);
+
+            SimpleFTP simpleFTP = new SimpleFTP();  //การเรียกใช้ Class SimpleFTP ต้องทำการ import Library simple.jar ก่อน ดูในที่จด
+            simpleFTP.connect("ftp.swiftcodingthai.com", 21, "19feb@swiftcodingthai.com", "Abc12345");  //ใส่ Host, Port, User, Password ของ Server
+            simpleFTP.bin();
+            simpleFTP.cwd("image_aom"); //ชื่อ directory บน Server ที่จะเก็บรูปภาพ
+            simpleFTP.stor(new File(pathImageString));    //การอ้างอิงถึง path รูปภาพ
+            simpleFTP.disconnect();
+
+        } catch (Exception e) {
+            Log.d("19FebV1", "e upload ==> " + e.toString());   //chk Protocal ที่จะ upload ขึ้น Server
+        }
+    }   //Method uploadImageToServer()
 
     private void bindWidget() {     //ผูกอิลิเมนต์กับตัวแปรยน java  ขั้น 6
 
@@ -150,8 +205,5 @@ public class SignUp extends AppCompatActivity {
         button = (Button) findViewById(R.id.button4);
 
     }   //Method bindWidget
-
-
-
 
 }   //Main Class
