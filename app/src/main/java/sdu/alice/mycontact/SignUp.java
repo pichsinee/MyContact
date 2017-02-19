@@ -25,6 +25,7 @@ public class SignUp extends AppCompatActivity {
             pathImageString, nameImageString;           //ขั้น 13 ประกาศตัวแปรเพิ่มเพื่อเก็บ path ของรูปและชื่อรูปที่อยู่ในเครื่องมือถือ
 
     private Uri uri;
+    private boolean aBoolean = true;    //ขั้น 15 ประกาศตัวแปรเพ่มสำหรับเช็คว่าเลือกรูปภาพในหน้า SignIn หรือยัง
 
 
     @Override
@@ -49,6 +50,8 @@ public class SignUp extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (resultCode == RESULT_OK) {
+
+            aBoolean = false;   //ขั้น 17 ถ้าเลือกรูปแล้ว เปลี่ยนค่า aBoolean เป็น false
 
             //if True Success choose image
             Log.d("18FebV1", "Result OK");
@@ -122,6 +125,15 @@ public class SignUp extends AppCompatActivity {
                     Log.d("18FebV1", "Have Space"); //ใช้ติดตามการทำงานของแอป โดยกด Alt+6
                     MyAlert myAlert = new MyAlert(SignUp.this);     //ขั้น 10 ต้องทำขั้น 9 ที่ MyAlert.java
                     myAlert.myDialog("Have space", "Please fill every blank.");  //ข้อความ Title และ Message พิมพ์ภาษาไทยก็ได้
+
+                } else if (aBoolean) {  //ขั้น 15   chk ว่ารูปภาพยังไม่ได้เลือก คือ ตัวแปร aBoolean เป็น true
+                    //Non choose Image
+                    MyAlert myAlert = new MyAlert(SignUp.this);
+                    myAlert.myDialog("ยังไม่ได้เลือกรูป", "กรุณาเลือกรูปก่อน");
+
+                } else {
+
+
                 }
 
             }   //onClick
